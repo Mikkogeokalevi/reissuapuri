@@ -6,7 +6,7 @@ const urlParams = new URLSearchParams(window.location.search);
 const listNameFromUrl = urlParams.get('lista');
 const FIREBASE_PATH = listNameFromUrl || 'paalista';
 const OFFLINE_KEY = `georeissu-offline-${FIREBASE_PATH}`;
-// --- ASETUKSET w2 PÄÄTTYVÄT ---
+// --- ASETUKSET PÄÄTTYVÄT ---
 
 document.addEventListener('DOMContentLoaded', () => {
     document.title = `${FIREBASE_PATH} — MK Reissuapuri —`;
@@ -88,9 +88,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let clickMarker = null;
     let lastCheckedCoords = null;
     let wakeLock = null;
-    // --- UUSI LISÄYS: Tila kuntamerkkien näkyvyydelle ---
     let showMunicipalityMarkers = true; 
-    // --- LOPPU ---
 
     const ALERT_APPROACH_DISTANCE = 1500;
     const ALERT_TARGET_DISTANCE = 200;
@@ -141,7 +139,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const profileName = pgcProfileNameInput.value.trim();
         let href = "#";
         if (profileName && pgcMapCountiesLink) {
-            // Myös tässä päivitetään profiilinimen parametri
             href = `https://project-gc.com/Tools/MapCounties?player_prc_profileName=${encodeURIComponent(profileName)}&country=Finland&submit=Filter`;
         }
         pgcMapCountiesLink.href = href;
@@ -155,7 +152,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const region = officialName ? kuntaMaakuntaData[officialName] : undefined;
 
         if (region && pgcProfileName && officialName) {
-            // Tässä luodaan uudenmallinen URL-osoite
             const pgcUrl = `https://project-gc.com/Tools/MapCompare?player_prc_profileName=${pgcProfileName}&geocache_mc_show[]=found-none&geocache_mc_ownedAsFound=on&geocache_crc_country=Finland&geocache_crc_region=${encodeURIComponent(region)}&geocache_crc_county=${encodeURIComponent(officialName)}&submit=Filter`;
             return `<a href="${pgcUrl}" target="_blank" rel="noopener noreferrer" title="Avaa ${officialName} Project-GC:ssä" class="${cssClass}">🗺️</a>`;
         }
@@ -182,7 +178,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const getCacheIconPath = (typeName) => {
-        let iconUrl = 'icons/unknown.svg'; // UUSI OLETUSIKONI
+        let iconUrl = 'icons/unknown.svg';
         if (typeName) {
             const lowerTypeName = typeName.toLowerCase();
             if (lowerTypeName.includes('traditional')) iconUrl = 'icons/tradi.svg';
@@ -333,18 +329,17 @@ document.addEventListener('DOMContentLoaded', () => {
         const userIcon = L.divIcon({className: 'user-marker'});
         userMarker = L.marker([0, 0], { icon: userIcon }).addTo(map);
         
-        // --- UUSI LISÄYS: Lisätään kartalle nappi, jolla voi piilottaa kuntien nimet ---
         const ToggleMarkersControl = L.Control.extend({
             onAdd: function(map) {
                 const btn = L.DomUtil.create('button', 'leaflet-bar leaflet-control leaflet-control-custom');
-                btn.innerHTML = 'Piilota kunnat'; // Alkuteksti
+                btn.innerHTML = 'Piilota kunnat'; 
                 btn.title = 'Näytä/Piilota kuntien nimet kartalla';
 
                 btn.onclick = (e) => {
-                    L.DomEvent.stopPropagation(e); // Estää kartan klikkaus-eventin
-                    showMunicipalityMarkers = !showMunicipalityMarkers; // Vaihda tilaa
-                    btn.innerHTML = showMunicipalityMarkers ? 'Piilota kunnat' : 'Näytä kunnat'; // Päivitä napin teksti
-                    updateAllMarkers(); // Päivitä kartan merkit
+                    L.DomEvent.stopPropagation(e);
+                    showMunicipalityMarkers = !showMunicipalityMarkers; 
+                    btn.innerHTML = showMunicipalityMarkers ? 'Piilota kunnat' : 'Näytä kunnat'; 
+                    updateAllMarkers();
                 };
                 return btn;
             },
@@ -352,8 +347,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         new ToggleMarkersControl({ position: 'topleft' }).addTo(map);
-        // --- LOPPU ---
-
         map.on('click', handleMapClick);
     };
 
@@ -382,7 +375,6 @@ document.addEventListener('DOMContentLoaded', () => {
         cacheMarkers.forEach(marker => marker.removeFrom(map)); cacheMarkers = [];
         const bounds = [];
         
-        // --- MUOKATTU KOHTA: Kuntamerkit piirretään vain jos asetus on päällä ---
         if (showMunicipalityMarkers) {
             municipalities.forEach(mun => {
                 if (mun.lat && mun.lon) {
@@ -393,7 +385,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
         }
-        // --- LOPPU ---
 
         municipalities.forEach(mun => {
             (mun.caches || []).forEach(cache => {
@@ -699,9 +690,8 @@ document.addEventListener('DOMContentLoaded', () => {
     loadStateFromOffline();
     initMap();
 
-    // LISÄTTY OSUUS: Hae ja näytä kaikki reissulistat, JOS ollaan pääsivulla
     if (!listNameFromUrl) {
-        const allListsRef = ref(database, '/'); // Viittaus tietokannan juureen
+        const allListsRef = ref(database, '/');
         onValue(allListsRef, (snapshot) => {
             const allData = snapshot.val();
             if (allData) {
@@ -731,7 +721,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Tämä on ALKUPERÄINEN datan kuuntelija, joka pysyy ennallaan ja toimii kaikilla sivuilla
     onValue(ref(database, FIREBASE_PATH), async (snapshot) => {
         console.log("Haetaan dataa Firebasesta polusta:", FIREBASE_PATH);
         const data = snapshot.val() || {};
@@ -944,11 +933,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     };
                     
                     const groundspeakCache = wpt.getElementsByTagName('groundspeak:cache')[0];
-                    if (!groundspeakCache) continue; // Ei ole geokätkö-waypoint
+                    if (!groundspeakCache) continue;
 
                     const gcCode = getElementText(wpt, 'name');
 
-                    // Tarkista, onko kätkö jo olemassa missään kunnassa
                     const cacheExists = municipalities.some(mun =>
                         mun.caches && mun.caches.some(cache => cache.gcCode === gcCode)
                     );
@@ -979,7 +967,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         id: Date.now() + Math.random(),
                         name: cacheName,
                         gcCode: gcCode,
-                        fp: '', // GPX-tiedostossa ei ole FP-tietoa
+                        fp: '',
                         type: cacheType,
                         size: cacheSize,
                         difficulty: difficulty,
@@ -1011,7 +999,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                     cachesAddedCount++;
                     importGpxBtn.textContent = `Käsitellään... ${i + 1} / ${waypoints.length}`;
-                    await delay(50); // Pieni viive estämään UI:n jumiutumista ja API-kutsujen tulvaa
+                    await delay(50);
                 } catch (e) {
                     console.error("GPX-waypointin jäsentäminen epäonnistui:", e);
                 }
@@ -1024,7 +1012,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 alert(`Ei lisätty uusia kätköjä. ${cachesAlreadyExist} kätköä oli jo ennestään listalla.`);
             }
 
-            // Nollaa tila
             gpxFileInput.value = '';
             gpxFileName.textContent = '';
             importGpxBtn.classList.add('hidden');
@@ -1410,5 +1397,12 @@ document.addEventListener('DOMContentLoaded', () => {
             if (offset < 0 && offset > closest.offset) return { offset: offset, element: child };
             else return closest;
         }, { offset: Number.NEGATIVE_INFINITY }).element;
+    }
+
+    // --- PWA Service Worker Registration ---
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('./sw.js')
+            .then((reg) => console.log('Service Worker rekisteröity', reg))
+            .catch((err) => console.log('Service Worker virhe', err));
     }
 });
